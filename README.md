@@ -149,7 +149,7 @@ iface eth0 inet static
 
 Vladimir Harkonen memerintahkan setiap worker(harkonen) PHP, untuk melakukan konfigurasi virtual host untuk website berikut dengan menggunakan php 7.3.
 
-Pertama buat script phpworker.sh di Vladimir, Rabban, dan Veyd.
+Pertama buat script phpworker.sh di Vladimir, Rabban, dan Feyd.
 
 ```
 echo 'nameserver 192.168.122.1' > /etc/resolv.conf
