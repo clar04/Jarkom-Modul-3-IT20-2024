@@ -146,6 +146,7 @@ iface eth0 inet static
 | Feyd    | PHP Worker           | 192.243.1.4    |
 
 **No 6**
+
 Vladimir Harkonen memerintahkan setiap worker(harkonen) PHP, untuk melakukan konfigurasi virtual host untuk website berikut dengan menggunakan php 7.3.
 
 Pertama buat script phpworker.sh di Vladimir, Rabban, dan Veyd.
