@@ -134,7 +134,6 @@ iface eth0 inet static
 #### List IP 
 | Node    | Kategori             | IP Address     |
 |---------|----------------------|----------------|
-| Arakis  | Router (DHCP Relay)  | 192.168.122.1  |
 | Mohiam  | DHCP Server          | 192.243.3.3    |
 | Irulan  | DNS Server           | 192.243.3.2    |
 | Chani   | Database Server      | 192.243.4.2    |
