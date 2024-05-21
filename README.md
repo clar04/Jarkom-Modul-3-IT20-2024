@@ -566,6 +566,42 @@ service php7.3-fpm start
 
 ## Soal 7
 Aturlah agar Stilgar dari fremen dapat dapat bekerja sama dengan maksimal, lalu lakukan testing dengan 5000 request dan 150 request/second.(7)
+Masuk ke stilgar dan buat .sh baru
+~~~
+#!/bin/bash
+echo 'nameserver 192.168.122.1' > /etc/resolv.conf
+apt update
+apt install nginx php php-fpm lynx apache2-utils -y
+
+echo 'upstream round_robin  {
+    server 192.243.1.2 ; #IP Vladimir
+    server 192.243.1.3 ; #IP Rabban
+    server 192.243.1.4 ; #IP Feyd
+}
+
+server {
+    listen 8080;
+        
+
+        location / {
+            proxy_pass http://round_robin;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    Host $http_host;
+        }
+
+    error_log /var/log/nginx/lb_error.log;
+    access_log /var/log/nginx/lb_access.log;
+}' >/etc/nginx/sites-available/round-robin
+
+unlink /etc/nginx/sites-enabled/default
+
+ln -s /etc/nginx/sites-available/round-robin /etc/nginx/sites-enabled/round-robin
+
+service nginx restart
+~~~
+Setelah itu masuk ke client dan jalankan command ab -n 5000 -c 150 http://192.243.4.3:8080/
+![image](https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/128389289/faf809c8-fcae-4bc6-bd78-4f12885dcedd)
 
 ## Soal 8
 Karena diminta untuk menuliskan peta tercepat menuju spice, buatlah analisis hasil testing dengan 500 request dan 50 request/second masing-masing algoritma Load Balancer dengan ketentuan sebagai berikut:
