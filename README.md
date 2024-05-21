@@ -7,7 +7,80 @@ Laporan Resmi Praktikum Jaringan Komputer Modul 3
 | Clara Valentina | 5027221016 |
 | Muhammad Arsy Athallah| 5027221048 |
 
-### Konfigurasi Awal
+### Topologi
+
+<img width="999" alt="image" src="https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/123356941/7879570e-e796-4385-b5c2-ae98b87be7e5">
+
+## Soal 0 - 1
+Planet Caladan sedang mengalami krisis karena kehabisan spice, klan atreides berencana untuk melakukan eksplorasi ke planet arakis dipimpin oleh duke leto mereka meregister domain name atreides.yyy.com untuk worker Laravel mengarah pada Leto Atreides . Namun ternyata tidak hanya klan atreides yang berusaha melakukan eksplorasi, Klan harkonen sudah mendaftarkan domain name harkonen.yyy.com untuk worker PHP (0) mengarah pada Vladimir Harkonen.
+Jalankan script berikut di `Irulan`
+```
+echo 'zone "atreides.it20.com" {
+        type master;
+        file "/etc/bind/jarkom/atreides.it20.com";
+};
+
+
+zone "harkonen.it20.com" {
+        type master;
+        file "/etc/bind/jarkom/harkonen.it20.com";
+};' > /etc/bind/named.conf.local
+
+
+mkdir /etc/bind/jarkom
+
+
+echo ';
+; BIND data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     atreides.it20.com. root.atreides.it20.com. (
+                        2024051601      ; Serial
+                        604800          ; Refresh
+                        86400           ; Retry
+                        2419200         ; Expire
+                        604800 )        ; Negative Cache TTL
+;
+@               IN      NS      atreides.it20.com.
+@               IN      A       192.243.2.2; IP Leto Laravel Worker' > /etc/bind/jarkom/atreides.it20.com
+
+
+echo ';
+; BIND data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     harkonen.it20.com.  harkonen.it20.com.  (
+                        2024051601      ; Serial
+                        604800          ; Refresh
+                        86400           ; Retry
+                        2419200         ; Expire
+                        604800 )        ; Negative Cache TTL
+;
+@               IN      NS      harkonen.it20.com.
+@               IN      A       192.243.1.2 ; IP Vladimir PHP Worker' > /etc/bind/jarkom/harkonen.it20.com
+
+
+echo 'options {
+        directory "/var/cache/bind";
+
+
+        forwarders {
+                192.168.122.1;
+        };
+
+
+        // dnssec-validation auto;
+        allow-query{any;};
+        auth-nxdomain no;    
+        listen-on-v6 { any; };
+}; ' >/etc/bind/named.conf.options
+
+
+service bind9 restart
+```
+(1) Lakukan konfigurasi sesuai dengan peta yang sudah diberikan.
+
+#### Konfigurasi Awal
 #### Prefix IP IT20
 `192.243`
 #### Konfigurasi Nodes
@@ -145,8 +218,289 @@ iface eth0 inet static
 | Rabban  | PHP Worker           | 192.243.1.3    |
 | Feyd    | PHP Worker           | 192.243.1.4    |
 
-**No 6**
+#### Setup Node
+**Arakis**
+```
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE -s 192.243.0.0/16
 
+apt-get update
+apt-get install isc-dhcp-relay -y
+service isc-dhcp-relay start
+
+echo '
+# IP DHCP Server -> IP Mohiam
+SERVERS="192.243.3.3"
+# Interfaces to listen on
+INTERFACES="eth1 eth2 eth3 eth4"
+# Options to pass to the DHCP relay
+OPTIONS=""
+' > /etc/default/isc-dhcp-relay
+
+echo net.ipv4.ip_forward=1 > /etc/sysctl.conf
+
+service isc-dhcp-relay restart
+
+```
+
+**Irulan**
+```
+echo 'nameserver 192.168.122.1' > /etc/resolv.conf
+
+# Install necessary packages
+apt-get update
+apt-get install -y bind9
+
+echo '
+options {
+      directory "/var/cache/bind";
+
+      forwarders {
+          192.168.122.1;
+      };
+
+      // dnssec-validation auto;
+      allow-query{ any; };
+      auth-nxdomain no;    # conform to RFC1035
+      listen-on-v6 { any; };
+};' > /etc/bind/named.conf.options
+
+service bind9 restart
+```
+
+**Mohiam**
+```
+echo 'nameserver 192.243.3.2' > /etc/resolv.conf
+
+apt-get update
+apt-get install isc-dhcp-server
+service isc-dhcp-server status
+
+echo 'INTERFACESv4="eth0"' > /etc/default/isc-dhcp-server
+
+echo '
+ddns-update-style none;
+
+# Subnet Switch Harkonen
+subnet 192.248.1.0 netmask 255.255.255.0 {
+}
+
+# Subnet Switch Atreides
+subnet 192.248.2.0 netmask 255.255.255.0 {
+}
+
+subnet 192.248.3.0 netmask 255.255.255.0 {
+}
+
+subnet 192.248.4.0 netmask 255.255.255.0 {
+}' > /etc/dhcp/dhcpd.conf
+
+
+service isc-dhcp-server restart
+```
+
+**Chani**
+```
+echo 'nameserver 192.243.3.2' > /etc/resolv.conf
+apt-get update
+apt-get install mariadb-server -y
+service mysql start
+```
+
+**Stilgar**
+```
+echo 'nameserver 192.243.3.2' > /etc/resolv.conf
+apt-get update
+apt-get install apache2-utils -y
+apt-get install nginx -y
+apt-get install lynx -y
+
+service nginx start
+```
+
+**PHP Worker**
+```
+echo 'nameserver 192.243.3.2' > /etc/resolv.conf
+apt-get update
+apt-get install nginx -y
+apt-get install wget -y
+apt-get install unzip -y
+apt-get install lynx -y
+apt-get install htop -y
+apt-get install apache2-utils -y
+apt-get install php7.3-fpm php7.3-common php7.3-mysql php7.3-gmp php7.3-curl php7.3-intl php7.3-mbstring php7.3-xmlrpc php7.3-gd php7.3-xml php7.3-cli php7.3-zip -y
+
+service nginx start
+service php7.3-fpm start
+```
+
+**Lavarel Worker**
+```
+apt-get update
+
+apt-get install mariadb-client -y
+
+apt-get install -y lsb-release ca-certificates apt-transport-https software-properties-common gnupg2
+
+curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+
+sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+
+apt-get update
+
+apt-get install php8.0-mbstring php8.0-xml php8.0-cli php8.0-common php8.0-intl php8.0-opcache php8.0-readline php8.0-mysql php8.0-fpm php8.0-curl unzip wget -y
+apt-get install nginx -y
+
+wget https://getcomposer.org/download/2.0.13/composer.phar
+chmod +x composer.phar
+mv composer.phar /usr/bin/composer
+
+apt-get install git -y
+
+apt-get install lynx
+```
+
+**Client**
+```
+apt update
+apt install lynx -y
+apt install htop -y
+apt install apache2-utils -y
+apt-get install jq -y
+```
+#### Dokumentasi ping harkonen.it20.com dan atreides.it20.com pada client Dmitri
+
+<img width="524" alt="image" src="https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/123356941/b12c1e79-47d9-4969-a620-a7e8ef5cacda">
+
+#### Dokumentasi ping harkonen.it20.com dan atreides.it20.com pada client Paul
+
+<img width="547" alt="image" src="https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/123356941/a42ce5a9-16bb-4042-857c-352dee92a908">
+
+## Soal 2
+Kemudian, karena masih banyak spice yang harus dikumpulkan, bantulah para aterides untuk bersaing dengan harkonen dengan kriteria berikut.:
+1. Semua CLIENT harus menggunakan konfigurasi dari DHCP Server.
+2. Client yang melalui House Harkonen mendapatkan range IP dari [prefix IP].1.14 - [prefix IP].1.28 dan [prefix IP].1.49 - [prefix IP].1.70 (2)
+
+Pada Irulan, menjalankan script berikut 
+```
+echo 'subnet 192.243.1.1 netmask 255.255.255.0 {
+    range 192.243.1.14 192.243.1.28;
+    range 192.243.1.49 192.243.1.70;
+    option routers 192.243.1.1;
+}
+
+subnet 192.243.2.1 netmask 255.255.255.0 {
+}
+
+subnet 192.243.3.0 netmask 255.255.255.0 {
+}
+
+subnet 192.243.4.0 netmask 255.255.255.0 {
+
+}' > /etc/dhcp/dhcpd.conf
+
+service bind9 start
+```
+
+## Soal 3
+3. Client yang melalui House Atreides mendapatkan range IP dari [prefix IP].2.15 - [prefix IP].2.25 dan [prefix IP].2 .200 - [prefix IP].2.210 (3)
+Pada Mohiam menjalankan script berikut
+```
+echo 'subnet 192.243.1.1 netmask 255.255.255.0 {
+    range 192.243.1.14 192.243.1.28;
+    range 192.243.1.49 192.243.1.70;
+    option routers 192.243.1.1;
+}
+
+subnet 192.243.2.1 netmask 255.255.255.0 {
+    range 192.243.2.15 192.243.2.25;
+    range 192.243.2.200 192.243.2.210;
+    option routers 192.243.2.1;
+}
+
+subnet 192.243.3.0 netmask 255.255.255.0 {
+}
+
+subnet 192.243.4.0 netmask 255.255.255.0 {
+
+
+}' > /etc/dhcp/dhcpd.conf
+
+service isc-dhcp-server start
+
+```
+
+## Soal 4
+4. Client mendapatkan DNS dari Princess Irulan dan dapat terhubung dengan internet melalui DNS tersebut (4)
+Pada Mohiam menjalankan script berikut
+```
+echo 'subnet 192.243.1.0 netmask 255.255.255.0 {
+    range 192.243.1.14 192.243.1.28;
+    range 192.243.1.49 192.243.1.70;
+    option routers 192.243.1.1;
+    option broadcast-address 192.243.1.255;
+    option domain-name-servers 192.243.3.2;
+}
+
+subnet 192.243.2.0 netmask 255.255.255.0 {
+    range 192.243.2.15 192.243.2.25;
+    range 192.243.2.200 192.243.2.210;
+    option routers 192.243.2.1;
+    option broadcast-address 192.243.2.255;
+    option domain-name-servers 192.243.3.2;
+}
+
+subnet 192.243.3.0 netmask 255.255.255.0 {
+}
+
+subnet 192.243.4.0 netmask 255.255.255.0 {
+}' > /etc/dhcp/dhcpd.conf
+
+
+
+service isc-dhcp-server start
+
+```
+
+## Soal 5
+Durasi DHCP server meminjamkan alamat IP kepada Client yang melalui House Harkonen selama 5 menit sedangkan pada client yang melalui House Atreides selama 20 menit. Dengan waktu maksimal dialokasikan untuk peminjaman alamat IP selama 87 menit. (5)
+```
+echo 'subnet 192.243.1.1 netmask 255.255.255.0 {
+    range 192.243.1.14 192.243.1.28;
+    range 192.243.1.49 192.243.1.70;
+    option routers 192.243.1.1;
+    option broadcast-address 192.243.1.255;
+    option domain-name-servers 192.243.3.2;
+    default-lease-time 300;
+    max-lease-time 5220;
+}
+
+subnet 192.243.2.1 netmask 255.255.255.0 {
+    range 192.243.2.15 192.243.2.25;
+    range 192.243.2.200 192.243.2.210;
+    option routers 192.243.2.1;
+    option broadcast-address 192.243.2.255;
+    option domain-name-servers 192.243.3.2;
+    default-lease-time 1200;
+    max-lease-time 5220;
+}
+
+subnet 192.243.3.0 netmask 255.255.255.0 {
+}
+
+subnet 192.243.4.0 netmask 255.255.255.0 {
+
+}' > /etc/dhcp/dhcpd.conf
+
+service isc-dhcp-server start
+```
+#### Dokumentasi pada client Dmitri untuk no 2, 4, 5
+<img width="442" alt="image" src="https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/123356941/0543e511-6bf5-4044-90c6-5e57d43cbe1f">
+
+#### Dokumentasi pada client Paul untuk no 3, 4, 5
+<img width="420" alt="image" src="https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/123356941/c66c9c2f-5992-485b-b09b-08e9bb2bd159">
+
+
+## Soal 6
 Vladimir Harkonen memerintahkan setiap worker(harkonen) PHP, untuk melakukan konfigurasi virtual host untuk website berikut dengan menggunakan php 7.3.
 
 Pertama buat script phpworker.sh di Vladimir, Rabban, dan Feyd.
@@ -210,3 +564,111 @@ service nginx restart
 service php7.3-fpm start
 ```
 
+## Soal 7
+Aturlah agar Stilgar dari fremen dapat dapat bekerja sama dengan maksimal, lalu lakukan testing dengan 5000 request dan 150 request/second.(7)
+
+## Soal 8
+Karena diminta untuk menuliskan peta tercepat menuju spice, buatlah analisis hasil testing dengan 500 request dan 50 request/second masing-masing algoritma Load Balancer dengan ketentuan sebagai berikut:
+a. Nama Algoritma Load Balancer
+b. Report hasil testing pada Apache Benchmark
+c. Grafik request per second untuk masing masing algoritma. 
+d. Analisis(8)
+
+## Soal 9
+Dengan menggunakan algoritma Least-Connection, lakukan testing dengan menggunakan 3 worker, 2 worker, dan 1 worker sebanyak 1000 request dengan 10 request/second, kemudian tambahkan grafiknya pada peta. (9)
+
+## Soal 10
+Selanjutnya coba tambahkan keamanan dengan konfigurasi autentikasi di LB dengan dengan kombinasi username: “secmart” dan password: “kcksyyy”, dengan yyy merupakan kode kelompok. Terakhir simpan file “htpasswd” nya di /etc/nginx/supersecret/ (10)
+
+## Soal 11
+Lalu buat untuk setiap request yang mengandung /dune akan di proxy passing menuju halaman https://www.dunemovie.com.au/. (11)
+
+## Soal 12
+Selanjutnya LB ini hanya boleh diakses oleh client dengan IP [Prefix IP].1.37, [Prefix IP].1.67, [Prefix IP].2.203, dan [Prefix IP].2.207. (12)
+
+## Soal 13
+Tidak mau kalah dalam perburuan spice, House atreides juga mengatur para pekerja di atreides.yyy.com.
+Semua data yang diperlukan, diatur pada Chani dan harus dapat diakses oleh Leto, Duncan, dan Jessica. (13)
+Menjalankan script berikut pada Chani
+```
+echo '# This group is read both by the client and the server
+# use it for options that affect everything
+[client-server]
+
+# Import all .cnf files from configuration directory
+!includedir /etc/mysql/conf.d/
+!includedir /etc/mysql/mariadb.conf.d/
+
+# Options affecting the MySQL server (mysqld)
+[mysqld]
+skip-networking=0
+skip-bind-address
+' > /etc/mysql/my.cnf
+
+cd /etc/mysql/mariadb.conf.d/50-server.cnf
+
+# Changes
+bind-address            = 0.0.0.0 
+
+service mysql restart
+
+# Prompt for the MySQL root password
+read -sp 'Enter MySQL root password: ' MYSQL_ROOT_PASSWORD
+echo
+
+# Execute MySQL commands
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" <<EOF
+DROP USER IF EXISTS 'kelompokit20'@'%';
+DROP USER IF EXISTS 'kelompokit20'@'localhost';
+CREATE USER 'kelompokit20'@'%' IDENTIFIED BY 'passwordit20';
+CREATE USER 'kelompokit20'@'localhost' IDENTIFIED BY 'passwordit20';
+DROP DATABASE IF EXISTS dbkelompokit20;
+CREATE DATABASE dbkelompokit20;
+GRANT ALL PRIVILEGES ON dbkelompokit20.* TO 'kelompokit20'@'%';
+GRANT ALL PRIVILEGES ON dbkelompokit20.* TO 'kelompokit20'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+
+echo "dbkelompokit20 created"
+```
+Kemudian mengecek apakah database telah bisa diakses pada laravel worker yaitu Leto, Duncan, dan Jessica dengan menggunakan command berikut
+`mariadb --host=192.243.4.2 --port=3306 --user=kelompokit20 --password=passwordit20 dbkelompokit20`
+Kemudian ketika MariaDB telah berjalan, menggunakan command `SHOW DATABASES;`
+
+#### Dokumentasi pada Leto
+<img width="539" alt="image" src="https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/123356941/a7e731ff-2e9b-49a2-9732-9f7acafcb03a">
+
+
+#### Dokumentasi pada Duncan
+<img width="535" alt="image" src="https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/123356941/7d1ea02c-c255-4544-9ded-9bc1b592ee72">
+
+
+#### Dokumentasi pada Jessica
+<img width="548" alt="image" src="https://github.com/clar04/Jarkom-Modul-3-IT20-2024/assets/123356941/31e87050-faa5-4b5a-bc33-f155975ad1eb">
+
+## Soal 14
+Leto, Duncan, dan Jessica memiliki atreides Channel sesuai dengan quest guide berikut. Jangan lupa melakukan instalasi PHP8.0 dan Composer (14)
+
+## Soal 15
+atreides Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada peta.
+a. POST /auth/register (15)
+
+## Soal 16
+b. POST /auth/login (16)
+
+## Soal 17
+c. GET /me (17)
+
+## Soal 18
+Untuk memastikan ketiganya bekerja sama secara adil untuk mengatur atreides Channel maka implementasikan Proxy Bind pada Stilgar untuk mengaitkan IP dari Leto, Duncan, dan Jessica. (18)
+
+## Soal 19
+Untuk meningkatkan performa dari Worker, coba implementasikan PHP-FPM pada Leto, Duncan, dan Jessica. Untuk testing kinerja naikkan 
+- pm.max_children
+- pm.start_servers
+- pm.min_spare_servers
+- pm.max_spare_servers
+sebanyak tiga percobaan dan lakukan testing sebanyak 100 request dengan 10 request/second kemudian berikan hasil analisisnya pada PDF.(19)
+
+## Soal 20
+Nampaknya hanya menggunakan PHP-FPM tidak cukup untuk meningkatkan performa dari worker maka implementasikan Least-Conn pada Stilgar. Untuk testing kinerja dari worker tersebut dilakukan sebanyak 100 request dengan 10 request/second. (20)
