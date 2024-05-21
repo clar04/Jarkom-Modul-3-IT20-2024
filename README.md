@@ -704,7 +704,7 @@ ln -s /etc/nginx/sites-available/least-conn /etc/nginx/sites-enabled/least-conn
 
 service nginx restart
 ~~~
-lalu masuk ke client dan buat scripting seperti ini untuk mendapatkan report:
+lalu masuk ke client dan buat scripting dengan nama test.sh untuk mendapatkan report:
 ~~~
 #!/bin/bash
 
@@ -1014,7 +1014,54 @@ Setelah di bash maka akan muncul data dan membuat analisis serta grafik batang d
 
 ## Soal 9
 Dengan menggunakan algoritma Least-Connection, lakukan testing dengan menggunakan 3 worker, 2 worker, dan 1 worker sebanyak 1000 request dengan 10 request/second, kemudian tambahkan grafiknya pada peta. (9)
+Buat .sh baru di stilgar dengan script seperti ini:
+~~~
+echo 'upstream least_conn_2_worker  {
+    least_conn;
+    server 192.243.1.2 ; #IP Vladimir
+    server 192.243.1.3 ; #IP Rabban
+}
 
+server {
+    listen 8084;
+        
+        location / {
+            proxy_pass http://least_conn_2_worker;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    Host $http_host;
+        }
+
+    error_log /var/log/nginx/lb_error.log;
+    access_log /var/log/nginx/lb_access.log;
+}' >/etc/nginx/sites-available/least-conn-2-worker
+
+
+echo 'upstream least_conn_1_worker  {
+    least_conn;
+    server 192.243.1.2 ; #IP Vladimir
+}
+
+server {
+    listen 8085;
+        
+        location / {
+            proxy_pass http://least_conn_1_worker;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    Host $http_host;
+        }
+
+    error_log /var/log/nginx/lb_error.log;
+    access_log /var/log/nginx/lb_access.log;
+}' >/etc/nginx/sites-available/least-conn-1-worker
+
+ln -s /etc/nginx/sites-available/least-conn-2-worker /etc/nginx/sites-enabled/least-conn-2-worker
+ln -s /etc/nginx/sites-available/least-conn-1-worker /etc/nginx/sites-enabled/least-conn-1-worker
+
+service nginx restart
+~~~
+Setelah itu jalankan test.sh di client dan buat laporan dari request per second sesuai yang diminta oleh soal no 9
 ## Soal 10
 Selanjutnya coba tambahkan keamanan dengan konfigurasi autentikasi di LB dengan dengan kombinasi username: “secmart” dan password: “kcksyyy”, dengan yyy merupakan kode kelompok. Terakhir simpan file “htpasswd” nya di /etc/nginx/supersecret/ (10)
 
