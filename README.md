@@ -1064,7 +1064,40 @@ service nginx restart
 Setelah itu jalankan test.sh di client dan buat laporan dari request per second sesuai yang diminta oleh soal no 9
 ## Soal 10
 Selanjutnya coba tambahkan keamanan dengan konfigurasi autentikasi di LB dengan dengan kombinasi username: “secmart” dan password: “kcksyyy”, dengan yyy merupakan kode kelompok. Terakhir simpan file “htpasswd” nya di /etc/nginx/supersecret/ (10)
+buat .sh baru di stilgar dengan script seperti berikut:
+~~~
+mkdir /etc/nginx/supersecret/
 
+htpasswd -bc /etc/nginx/supersecret/htpasswd secmart kcksit20
+echo 'upstream round_robin  {
+    server 192.243.1.2 ; #IP Vladimir
+    server 192.243.1.3 ; #IP Rabban
+    server 192.243.1.4 ; #IP Feyd
+}
+
+server {
+    listen 8080;
+        
+
+        location / {
+            auth_basic "Restricted Content";
+            auth_basic_user_file /etc/nginx/supersecret/htpasswd;
+            proxy_pass http://round_robin;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    Host $http_host;
+        }
+
+    error_log /var/log/nginx/lb_error.log;
+    access_log /var/log/nginx/lb_access.log;
+}' >/etc/nginx/sites-available/round-robin
+
+
+ln -s /etc/nginx/sites-available/round-robin /etc/nginx/sites-enabled/round-robin
+
+service nginx restart
+~~~
+Lalu jalankan dan uji di client
 ## Soal 11
 Lalu buat untuk setiap request yang mengandung /dune akan di proxy passing menuju halaman https://www.dunemovie.com.au/. (11)
 
