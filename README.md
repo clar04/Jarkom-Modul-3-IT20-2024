@@ -1100,9 +1100,134 @@ service nginx restart
 Lalu jalankan dan uji di client
 ## Soal 11
 Lalu buat untuk setiap request yang mengandung /dune akan di proxy passing menuju halaman https://www.dunemovie.com.au/. (11)
+Buat .sh di stilgar dengan script seperti berikut:
+~~~
+mkdir /etc/nginx/supersecret/
 
+htpasswd -bc /etc/nginx/supersecret/htpasswd secmart kcksit20
+echo 'upstream round_robin  {
+    server 192.243.1.2 ; #IP Vladimir
+    server 192.243.1.3 ; #IP Rabban
+    server 192.243.1.4 ; #IP Feyd
+}
+
+server {
+    listen 8080;
+        
+        location ~ /dune {
+            rewrite ^/dune(.*)$ /$1 break;
+            proxy_pass https://www.dunemovie.com.au:443;
+            break;
+        }
+    
+        location / {
+            auth_basic "Restricted Content";
+            auth_basic_user_file /etc/nginx/supersecret/htpasswd;
+            proxy_pass http://round_robin;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    Host $http_host;
+        }
+
+    error_log /var/log/nginx/lb_error.log;
+    access_log /var/log/nginx/lb_access.log;
+}' >/etc/nginx/sites-available/round-robin
+
+
+ln -s /etc/nginx/sites-available/round-robin /etc/nginx/sites-enabled/round-robin
+
+service nginx restart
+~~~
+masuk ke client dan jalan kan dengan lynx ip stilgar serta tambahkan /dune dibelakang portnya
 ## Soal 12
 Selanjutnya LB ini hanya boleh diakses oleh client dengan IP [Prefix IP].1.37, [Prefix IP].1.67, [Prefix IP].2.203, dan [Prefix IP].2.207. (12)
+buat sh. di dhcp-server atau mohiam dengan script seperti berikut:
+~~~
+echo 'subnet 192.243.1.0 netmask 255.255.255.0 {
+    range 192.243.1.14 192.243.1.28;
+    range 192.243.1.49 192.243.1.70;
+    option routers 192.243.1.1;
+    option broadcast-address 192.243.1.255;
+    option domain-name-servers 192.243.3.2;
+    default-lease-time 300;
+    max-lease-time 5220;
+}
+
+subnet 192.243.2.0 netmask 255.255.255.0 {
+    range 192.243.2.15 192.243.2.25;
+    range 192.243.2.200 192.243.2.210;
+    option routers 192.243.2.1;
+    option broadcast-address 192.243.2.255;
+    option domain-name-servers 192.243.3.2;
+    default-lease-time 1200;
+    max-lease-time 5220;
+}
+
+subnet 192.243.3.0 netmask 255.255.255.0 {
+    option routers 192.243.3.1;
+    option broadcast-address 192.243.3.255;
+}
+
+subnet 192.243.4.0 netmask 255.255.255.0 {
+    option routers 192.243.4.1;
+    option broadcast-address 192.243.4.255;
+}
+
+host Dmitri {
+    hardware ethernet 76:98:64:1f:93:36;
+    fixed-address 192.243.1.37;
+    option host-name "Dmitri";
+}
+' > /etc/dhcp/dhcpd.conf
+
+service isc-dhcp-server restart
+~~~
+lalu buat .sh di stilgar dengan script seperti berikut:
+~~~
+echo 'upstream round_robin  {
+    server 192.243.1.2 ; #IP Vladimir
+    server 192.243.1.3 ; #IP Rabban
+    server 192.243.1.4 ; #IP Feyd
+}
+
+server {
+    listen 8080;
+        
+        location ~ /dune {
+            rewrite ^/dune(.*)$ /$1 break;
+            proxy_pass https://www.dunemovie.com.au:443;
+            break;
+        }
+    
+        location / {
+            allow 127.0.0.1;
+            allow 192.243.1.37;
+            allow 192.243.1.67;
+            allow 192.243.2.203;
+            allow 192.243.2.207;
+            deny all;
+            
+            auth_basic "Restricted Content";
+            auth_basic_user_file /etc/nginx/supersecret/htpasswd;
+            proxy_pass http://round_robin;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    Host $http_host;
+        }
+
+    error_log /var/log/nginx/lb_error.log;
+    access_log /var/log/nginx/lb_access.log;
+}' >/etc/nginx/sites-available/round-robin
+
+
+ln -s /etc/nginx/sites-available/round-robin /etc/nginx/sites-enabled/round-robin
+
+service nginx restart
+~~~
+Tambahin Config gns dmitri hwaddress ether 76:98:64:1f:93:36
+Reload client
+Lynx ip load balancer
+Bandingkan dmitri sama paul
 
 ## Soal 13
 Tidak mau kalah dalam perburuan spice, House atreides juga mengatur para pekerja di atreides.yyy.com.
