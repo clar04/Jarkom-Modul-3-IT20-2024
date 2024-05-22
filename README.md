@@ -1225,8 +1225,11 @@ ln -s /etc/nginx/sites-available/round-robin /etc/nginx/sites-enabled/round-robi
 service nginx restart
 ~~~
 Tambahin Config gns dmitri hwaddress ether 76:98:64:1f:93:36
+
 Reload client
+
 Lynx ip load balancer
+
 Bandingkan dmitri sama paul
 
 ## Soal 13
