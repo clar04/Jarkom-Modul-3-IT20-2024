@@ -1295,26 +1295,223 @@ Kemudian ketika MariaDB telah berjalan, menggunakan command `SHOW DATABASES;`
 ## Soal 14
 Leto, Duncan, dan Jessica memiliki atreides Channel sesuai dengan quest guide berikut. Jangan lupa melakukan instalasi PHP8.0 dan Composer (14)
 
-## Soal 15
-atreides Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada peta.
-a. POST /auth/register (15)
+### Bentuk Hasil No 15
+<div align="center">
+<img src = Images/no15.png style ="margin-bottom:15px">
+</div>
 
-## Soal 16
-b. POST /auth/login (16)
+# Nomor 16
+**POST /auth/login**
 
-## Soal 17
-c. GET /me (17)
+Buat file `login.json` di client **Dmitri** yang berisi:
+```bash
+{
+"username" : "kelompokit03",
+"password" : "kelompokit03"
+}
+```
 
-## Soal 18
-Untuk memastikan ketiganya bekerja sama secara adil untuk mengatur atreides Channel maka implementasikan Proxy Bind pada Stilgar untuk mengaitkan IP dari Leto, Duncan, dan Jessica. (18)
+Untuk pengetesan, gunakan command berikut di terminal:
+```bash
+ab -n 100 -c 10 -p login.json -T application/json http://10.65.2.2:8001/api/auth/login
+```
 
-## Soal 19
+### Bentuk Hasil No 16
+<div align="center">
+<img src = Images/no16.png style ="margin-bottom:15px">
+</div>
+
+# Nomor 17
+**GET /me**
+
+Buat script `getme.sh` dengan isi sebagai berikut:
+```bash
+curl -X POST -H "Content-Type: application/json" -d @login.json http://10.65.2.2:8001/api/auth/login > login_output.txt
+token=$(cat login_output.txt | jq -r '.token')
+```
+
+Script diatas digunakan untuk mendapatkan bearer token yang akan digunakan dalam script pengetesan sebagai berikut:
+```bash
+ab -n 100 -c 10 -H "Authorization: Bearer $token" http://10.65.2.2:8001/api/me
+```
+
+### Bentuk Hasil No 17
+<div align="center">
+<img src = Images/no17.png style ="margin-bottom:15px">
+</div>
+
+# Nomor 18
+Ubah konfigurasi pada node `stilgar.sh` dan tambahkan script dibawah ini:
+```bash
+echo 'upstream pekerja { #(round-robin(default), ip_hash, least_conn, hash $request_uri consistent)
+    least_conn;
+    server 10.65.2.2:8001;
+    server 10.65.2.3:8002;
+    server 10.65.2.4:8003;
+}
+
+server {
+    listen 80;
+    server_name atreides.it03.com;
+
+    location / {
+        proxy_pass http://pekerja;
+    }
+}
+' > /etc/nginx/sites-available/laravel-fff
+
+ln -s /etc/nginx/sites-available/laravel-fff /etc/nginx/sites-enabled/
+```
+
+Untuk pengetesan, jalankan script berikut
+```bash
+ab -n 100 -c 10 -p login.json -T application/json http://atreides.it03.com/api/auth/login
+```
+
+### Bentuk Hasil No 18
+#### Duncan
+<div align="center">
+<img src = Images/no18_1.png style ="margin-bottom:15px">
+</div>
+
+#### Leto
+<div align="center">
+<img src = Images/no18_2.png style ="margin-bottom:15px">
+</div>
+
+#### Jessica
+<div align="center">
+<img src = Images/no18_3.png style ="margin-bottom:15px">
+</div>
+
+# Nomor 19
 Untuk meningkatkan performa dari Worker, coba implementasikan PHP-FPM pada Leto, Duncan, dan Jessica. Untuk testing kinerja naikkan 
 - pm.max_children
 - pm.start_servers
 - pm.min_spare_servers
 - pm.max_spare_servers
-sebanyak tiga percobaan dan lakukan testing sebanyak 100 request dengan 10 request/second kemudian berikan hasil analisisnya pada PDF.(19)
+sebanyak tiga percobaan dan lakukan testing sebanyak 100 request dengan 10 request/second kemudian berikan hasil analisisnya pada PDF.
 
-## Soal 20
-Nampaknya hanya menggunakan PHP-FPM tidak cukup untuk meningkatkan performa dari worker maka implementasikan Least-Conn pada Stilgar. Untuk testing kinerja dari worker tersebut dilakukan sebanyak 100 request dengan 10 request/second. (20)
+Buatlah 3 script sebagai berikut:
+
+`testing1.sh`
+```bash
+echo '[www]
+user = www-data
+group = www-data
+listen = /run/php/php8.0-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+
+; Choose how the process manager will control the number of child processes.
+
+pm = dynamic
+pm.max_children = 10
+pm.start_servers = 5
+pm.min_spare_servers = 3
+pm.max_spare_servers = 8' > /etc/php/8.0/fpm/pool.d/www.conf
+
+service php8.0-fpm restart
+```
+
+`testing2.sh`
+```bash
+echo '[www]
+user = www-data
+group = www-data
+listen = /run/php/php8.0-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+
+; Choose how the process manager will control the number of child processes.
+
+pm = dynamic
+pm.max_children = 20
+pm.start_servers = 8
+pm.min_spare_servers = 5
+pm.max_spare_servers = 12' > /etc/php/8.0/fpm/pool.d/www.conf
+
+service php8.0-fpm restart
+```
+
+`testing3.sh`
+```bash
+echo '[www]
+user = www-data
+group = www-data
+listen = /run/php/php8.0-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+
+; Choose how the process manager will control the number of child processes.
+
+pm = dynamic
+pm.max_children = 40
+pm.start_servers = 10
+pm.min_spare_servers = 8
+pm.max_spare_servers = 15' > /etc/php/8.0/fpm/pool.d/www.conf
+
+service php8.0-fpm restart
+```
+Untuk pengetesan, jalankan command ini di terminal client **Dmitri**
+```bash
+ab -n 100 -c 10 -p login.json -T application/json http://10.65.2.2:8001/api/auth/login
+```
+
+### Bentuk Hasil No 19
+#### testing1.sh
+<div align="center">
+<img src = Images/no19_1.png style ="margin-bottom:15px">
+</div>
+
+#### testing2.sh
+<div align="center">
+<img src = Images/no19_2.png style ="margin-bottom:15px">
+</div>
+
+#### testing3.sh
+<div align="center">
+<img src = Images/no19_3.png style ="margin-bottom:15px">
+</div>
+
+# Nomor 20
+Nampaknya hanya menggunakan PHP-FPM tidak cukup untuk meningkatkan performa dari worker maka implementasikan Least-Conn pada Stilgar. Untuk testing kinerja dari worker tersebut dilakukan sebanyak `100 request` dengan `10 request/second`.
+
+Tambahkan script dibawah ini ke dalam script `stilgar.sh` di node **Stilgar**
+```bash
+echo 'upstream pekerja { #(round-robin(default), ip_hash, least_conn, hash $request_uri consistent)
+    least_conn;
+    server 10.65.2.2:8001;
+    server 10.65.2.3:8002;
+    server 10.65.2.4:8003;
+}
+
+server {
+    listen 80;
+    server_name atreides.it03.com;
+
+    location / {
+        proxy_pass http://pekerja;
+    }
+}
+' > /etc/nginx/sites-available/laravel-fff
+
+ln -s /etc/nginx/sites-available/laravel-fff /etc/nginx/sites-enabled/
+service nginx restart
+```
+
+Jalankan command berikut untuk melakukan pengetesan di client **Dmitri** terhadap script yang baru ditambahkan:
+```bash
+ab -n 100 -c 10 -p login.json -T application/json http://atreides.it03.com/api/auth/login
+```
+
+### Bentuk Hasil No 20
+<div align="center">
+<img src = Images/no20.png style ="margin-bottom:15px">
+</div>
