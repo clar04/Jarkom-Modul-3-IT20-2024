@@ -1295,10 +1295,6 @@ Kemudian ketika MariaDB telah berjalan, menggunakan command `SHOW DATABASES;`
 ## Soal 14
 Leto, Duncan, dan Jessica memiliki atreides Channel sesuai dengan quest guide berikut. Jangan lupa melakukan instalasi PHP8.0 dan Composer (14)
 
-### Bentuk Hasil No 15
-<div align="center">
-<img src = Images/no15.png style ="margin-bottom:15px">
-</div>
 
 # Nomor 16
 **POST /auth/login**
@@ -1306,8 +1302,8 @@ Leto, Duncan, dan Jessica memiliki atreides Channel sesuai dengan quest guide be
 Buat file `login.json` di client **Dmitri** yang berisi:
 ```bash
 {
-"username" : "kelompokit03",
-"password" : "kelompokit03"
+"username" : "kelompokit20",
+"password" : "kelompokit20"
 }
 ```
 
@@ -1316,10 +1312,6 @@ Untuk pengetesan, gunakan command berikut di terminal:
 ab -n 100 -c 10 -p login.json -T application/json http://10.65.2.2:8001/api/auth/login
 ```
 
-### Bentuk Hasil No 16
-<div align="center">
-<img src = Images/no16.png style ="margin-bottom:15px">
-</div>
 
 # Nomor 17
 **GET /me**
@@ -1335,11 +1327,6 @@ Script diatas digunakan untuk mendapatkan bearer token yang akan digunakan dalam
 ab -n 100 -c 10 -H "Authorization: Bearer $token" http://10.65.2.2:8001/api/me
 ```
 
-### Bentuk Hasil No 17
-<div align="center">
-<img src = Images/no17.png style ="margin-bottom:15px">
-</div>
-
 # Nomor 18
 Ubah konfigurasi pada node `stilgar.sh` dan tambahkan script dibawah ini:
 ```bash
@@ -1352,7 +1339,7 @@ echo 'upstream pekerja { #(round-robin(default), ip_hash, least_conn, hash $requ
 
 server {
     listen 80;
-    server_name atreides.it03.com;
+    server_name atreides.it20.com;
 
     location / {
         proxy_pass http://pekerja;
@@ -1365,24 +1352,8 @@ ln -s /etc/nginx/sites-available/laravel-fff /etc/nginx/sites-enabled/
 
 Untuk pengetesan, jalankan script berikut
 ```bash
-ab -n 100 -c 10 -p login.json -T application/json http://atreides.it03.com/api/auth/login
+ab -n 100 -c 10 -p login.json -T application/json http://atreides.it20.com/api/auth/login
 ```
-
-### Bentuk Hasil No 18
-#### Duncan
-<div align="center">
-<img src = Images/no18_1.png style ="margin-bottom:15px">
-</div>
-
-#### Leto
-<div align="center">
-<img src = Images/no18_2.png style ="margin-bottom:15px">
-</div>
-
-#### Jessica
-<div align="center">
-<img src = Images/no18_3.png style ="margin-bottom:15px">
-</div>
 
 # Nomor 19
 Untuk meningkatkan performa dari Worker, coba implementasikan PHP-FPM pada Leto, Duncan, dan Jessica. Untuk testing kinerja naikkan 
@@ -1464,21 +1435,6 @@ Untuk pengetesan, jalankan command ini di terminal client **Dmitri**
 ab -n 100 -c 10 -p login.json -T application/json http://10.65.2.2:8001/api/auth/login
 ```
 
-### Bentuk Hasil No 19
-#### testing1.sh
-<div align="center">
-<img src = Images/no19_1.png style ="margin-bottom:15px">
-</div>
-
-#### testing2.sh
-<div align="center">
-<img src = Images/no19_2.png style ="margin-bottom:15px">
-</div>
-
-#### testing3.sh
-<div align="center">
-<img src = Images/no19_3.png style ="margin-bottom:15px">
-</div>
 
 # Nomor 20
 Nampaknya hanya menggunakan PHP-FPM tidak cukup untuk meningkatkan performa dari worker maka implementasikan Least-Conn pada Stilgar. Untuk testing kinerja dari worker tersebut dilakukan sebanyak `100 request` dengan `10 request/second`.
@@ -1494,7 +1450,7 @@ echo 'upstream pekerja { #(round-robin(default), ip_hash, least_conn, hash $requ
 
 server {
     listen 80;
-    server_name atreides.it03.com;
+    server_name atreides.it20.com;
 
     location / {
         proxy_pass http://pekerja;
@@ -1508,10 +1464,7 @@ service nginx restart
 
 Jalankan command berikut untuk melakukan pengetesan di client **Dmitri** terhadap script yang baru ditambahkan:
 ```bash
-ab -n 100 -c 10 -p login.json -T application/json http://atreides.it03.com/api/auth/login
+ab -n 100 -c 10 -p login.json -T application/json http://atreides.it20.com/api/auth/login
 ```
 
-### Bentuk Hasil No 20
-<div align="center">
-<img src = Images/no20.png style ="margin-bottom:15px">
-</div>
+
