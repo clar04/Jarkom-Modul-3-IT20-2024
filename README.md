@@ -1412,6 +1412,25 @@ service nginx restart
 ~~~
 Lalu Uji pake lynx dari masing-masing ip laravelworker nya
 
+# Nomor 15
+Atreides Channel memiliki beberapa endpoint yang harus ditesting sebanyak **100 request** dengan **10 request/second**. Tambahkan response dan hasil testing pada peta.
+
+**POST /auth/register**
+
+Buat file`register.json` di client **Dmitri** yang berisi:
+```bash
+{
+"username" : "kelompokit03",
+"password" : "kelompokit03"
+}
+```
+
+Untuk pengetesan, gunakan command berikut di terminal:
+```bash
+ab -n 100 -c 10 -p register.json -T application/json http://10.65.2.2:8001/api/auth/register
+```
+
+
 ## Nomor 16
 **POST /auth/login**
 
